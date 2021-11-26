@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct vec{
     double * v;
@@ -38,6 +39,7 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
     while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
         //printf("%lf,%lf,%lf,%lf,%s\n", a, b, c, d, label);
         // allocation
+        // TODO check malloc if not null
         vecs[count].v = (double *)malloc(dimension * sizeof(double));
         vecs[count].label = (char *)malloc(sizeof(char));
 
@@ -81,12 +83,27 @@ void normalize_vector(vec_t * vecs, int nb_vec){
     }
 }
 
+void shuffle_vectors(vec_t * vecs, int nb_vec){
+    int i;
+    srand(time(NULL));
+    int random;
+    vec_t temp;
+    for(i = 0; i < nb_vec; i++){
+        random = rand() % nb_vec;
+        temp = vecs[i];
+        vecs[i] = vecs[random];
+        vecs[random] = temp;
+    }
+}
+
 int main(){
     vec_t * vecs;
     int nb_vec;
     fetch_iris_data(&vecs, &nb_vec);
-    print_vectors(vecs, nb_vec);
+    //print_vectors(vecs, nb_vec);
     normalize_vector(vecs, nb_vec);
+    //print_vectors(vecs, nb_vec);
+    shuffle_vectors(vecs, nb_vec);
     print_vectors(vecs, nb_vec);
     return 1;
 }
