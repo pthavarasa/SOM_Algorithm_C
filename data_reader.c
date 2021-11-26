@@ -4,6 +4,7 @@
 
 typedef struct vec{
     double * v;
+    int v_len;
     char * label;
 }vec_t;
 
@@ -31,13 +32,13 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
     // allocate vector list
     vec_t * vecs = (vec_t *)malloc(lines * sizeof(vec_t));
 
-    int count = 0;
+    int count = 0, dimension = 4;
     int i;
     // reading data by pattern and making vector list
     while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
         //printf("%lf,%lf,%lf,%lf,%s\n", a, b, c, d, label);
         // allocation
-        vecs[count].v = (double *)malloc(4 * sizeof(double));
+        vecs[count].v = (double *)malloc(dimension * sizeof(double));
         vecs[count].label = (char *)malloc(sizeof(char));
 
         // copy data
@@ -45,6 +46,7 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
         vecs[count].v[1] = b;
         vecs[count].v[2] = c;
         vecs[count].v[3] = d;
+        vecs[count].v_len = dimension;
         strcpy(vecs[count].label, label);
         count++;
     }
@@ -61,10 +63,30 @@ void print_vectors(vec_t * vecs, int nb_vec){
         printf("%lf,%lf,%lf,%lf,%s\n", vecs[i].v[0], vecs[i].v[1], vecs[i].v[2], vecs[i].v[3], vecs[i].label);
 }
 
+void normalize_vector(vec_t * vecs, int nb_vec){
+    int i, j;
+    double max, min;
+    max = vecs[0].v[0];
+    min = vecs[0].v[0];
+    for(i = 0; i < nb_vec; i++){
+        for (int j = 0; j < vecs[i].v_len; j++){
+            if(max < vecs[i].v[j]) max = vecs[i].v[j];
+            if(min > vecs[i].v[j]) min = vecs[i].v[j];
+        }
+    }
+    for (i = 0; i < nb_vec; i++){
+        for (int j = 0; j < vecs[i].v_len; j++){
+            vecs[i].v[j] = (vecs[i].v[j] - min) / (max - min);
+        }
+    }
+}
+
 int main(){
     vec_t * vecs;
     int nb_vec;
     fetch_iris_data(&vecs, &nb_vec);
+    print_vectors(vecs, nb_vec);
+    normalize_vector(vecs, nb_vec);
     print_vectors(vecs, nb_vec);
     return 1;
 }
