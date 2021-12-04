@@ -285,6 +285,36 @@ void alter_weight(vec_t vec, net_t * net, bmu_t bmu, int iter){
     }
 }
 
+int is_neighborhood(bmu_t bmu_pos, int weight_row, int weight_column, int nhd_dist){
+    if(sqrt((bmu_pos.row - weight_row) * (bmu_pos.row - weight_row)) <= nhd_dist &&
+        sqrt((bmu_pos.column - weight_column) * (bmu_pos.column - weight_column)) <= nhd_dist) return 1;
+    return 0;
+}
+
+void training_network(vec_t * vecs, net_t * net, int nb_vecs){
+    int i, j, iter, nhd_dist;
+    vec_t vec;
+    bmu_t pos;
+    bmu_t bmu;
+    for(iter = 0; iter < net->nb_iter; iter++){
+        vec = vecs[iter%nb_vecs];
+        find_best_matching_unit(vec, net);
+        bmu = get_bmu(net);
+        for(i = 0; i < net->nb_row; i++){
+            for(j = 0; j < net->nb_column; j++){
+                if(iter > net->nb_iter/4)
+                    nhd_dist = 1;
+                else
+                    nhd_dist = 3;
+                pos.row = i;
+                pos.column = j;
+                if(is_neighborhood(bmu, i, j, nhd_dist))
+                    alter_weight(vec, net, pos, iter);
+            }
+        }
+    }
+}
+
 int main(){
     vec_t * vecs;
     int nb_vec;
@@ -301,7 +331,7 @@ int main(){
     //printf("%d\n", network.nb_iter);
     //printf("%lf\n", network.map[0].w[0]);
 
-    //print_network(network);
+    print_network(network);
     //add_bmu(&network, 1, 4);
     //add_bmu(&network, 2, 4);
     //printf("%d\n", get_bmu(&network).row);
@@ -313,13 +343,22 @@ int main(){
     //printf("%d\n", get_bmu(&network).row);
 /*
     bmu_t b;
-    b.row = 0;
-    b.column = 0;
+    b.row = 4;
+    b.column = 4;
     print_network(network);
     printf("------------------");
     alter_weight(vecs[0], &network, b, 0);
+    print_network(network);*/
+
+    //printf("%d\n", is_neighborhood(b, 2,3,1));
+
+    printf("-------------------------------------------");
+    training_network(vecs, &network, nb_vec);
     print_network(network);
-*/
+
+
+
+
 
     free_vectors(vecs, nb_vec);
     free_network(network);
