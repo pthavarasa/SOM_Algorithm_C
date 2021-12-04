@@ -119,7 +119,6 @@ struct bmu{
     bmu_t * next;
 };
 
-
 typedef struct net{
     int nb_node;
     int nb_row;
@@ -129,8 +128,71 @@ typedef struct net{
     int nb_nhd; //neighborhood
     int vec_size;
     node_t * map;
-    bmu_t * bmu; // best much unit
+    bmu_t * bmu; // best matching unit
 }net_t;
+
+void add_bmu(net_t * net, int row, int column){
+    if(net->bmu == NULL){
+        net->bmu = (bmu_t*)malloc(sizeof(bmu_t));
+        net->bmu->row = row;
+        net->bmu->column = column;
+        net->bmu->next = NULL;
+    }else{
+        bmu_t * ptr = net->bmu;
+        while(ptr->next != NULL){
+            ptr = ptr->next;
+        }
+        ptr->next = (bmu_t*)malloc(sizeof(bmu_t));
+        ptr->next->row = row;
+        ptr->next->column = column;
+        ptr->next->next = NULL;
+    }
+}
+
+void delete_all_bmu(net_t * net){
+    if(net->bmu == NULL) return;
+    bmu_t * ptr = net->bmu;
+    bmu_t * delete;
+    while(ptr != NULL){
+        delete = ptr;
+        ptr = ptr->next;
+        free(delete);
+    }
+    net->bmu = NULL;
+}
+
+int count_bmu(net_t * net){
+    bmu_t * ptr = net->bmu;
+    int count = 0;
+    while(ptr != NULL){
+        count++;
+        ptr = ptr->next;
+    }
+    return count;
+}
+
+bmu_t get_bmu(net_t * net){
+    int count = count_bmu(net);
+    bmu_t bmu;
+    if(count == 0){
+        printf("something error, bmu = 0\n");
+        exit(EXIT_FAILURE);
+    }
+    if(count == 1){
+        bmu.row = net->bmu->row;
+        bmu.column = net->bmu->column;
+        return bmu;
+    }
+    int random = rand() % count;
+    bmu_t * ptr = net->bmu;
+    while (random != 0){
+        random--;
+        ptr = ptr->next;
+    }
+    bmu.row = ptr->row;
+    bmu.column = ptr->column;
+    return bmu;
+}
 
 void init_network(net_t * config){
     config->map = (node_t *)malloc(config->nb_row * config->nb_column * sizeof(node_t));
@@ -170,6 +232,7 @@ void network_config(net_t * config, int nb_vec, int vec_size){
     config->vec_size = 4;
     init_network(config);
     //printf("%lf\n", config->map[0].w[0]);
+    config->bmu = NULL;
 }
 
 void free_network(net_t net){
@@ -180,7 +243,47 @@ void free_network(net_t net){
     free(net.map);
 }
 
+double euclidean_distance(double * vec, double * weight, int size){
+    int i;
+    double sum = 0.0;
+    for(i = 0; i < size; i++){
+        sum += (weight[i] - vec[i]) * (weight[i] - vec[i]);
+    }
+    return sqrt(sum);
+}
 
+
+void find_best_matching_unit(vec_t vec, net_t * net){
+    int i, j;
+    double min_dist = 1<<20, dist;
+    for(i = 0; i < net->nb_row; i++){
+        for(j = 0; j < net->nb_column; j++){
+            dist = euclidean_distance(vec.v, net->map[i * net->nb_row + j].w, net->vec_size);
+            if(dist < min_dist){
+                min_dist = dist;
+                delete_all_bmu(net);
+                add_bmu(net, i, j);
+            }else if(dist < min_dist){
+                add_bmu(net, i, j);
+            }
+        }
+    }
+}
+
+void alter_weight(vec_t vec, net_t * net, bmu_t bmu, int iter){
+    double alpha;
+    if(iter > net->nb_iter/4)
+        alpha = net->alpha/10;
+    else
+        alpha = net->alpha;
+    alpha = alpha * (1 - iter / net->nb_iter);
+    double * weight;
+    weight = net->map[bmu.row * net->nb_row + bmu.column].w;
+    int i;
+    for(i = 0; i < net->vec_size; i++){
+        weight[i] = weight[i] + alpha * (vec.v[i] - weight[i]);
+    }
+}
 
 int main(){
     vec_t * vecs;
@@ -199,9 +302,24 @@ int main(){
     //printf("%lf\n", network.map[0].w[0]);
 
     //print_network(network);
+    //add_bmu(&network, 1, 4);
+    //add_bmu(&network, 2, 4);
+    //printf("%d\n", get_bmu(&network).row);
+    //printf("%d\n", count_bmu(&network));
 
+    //printf("%lf\n", euclidean_distance(vecs[0].v, network.map[0].w, 4));
 
-
+    //find_best_matching_unit(vecs[0], &network);
+    //printf("%d\n", get_bmu(&network).row);
+/*
+    bmu_t b;
+    b.row = 0;
+    b.column = 0;
+    print_network(network);
+    printf("------------------");
+    alter_weight(vecs[0], &network, b, 0);
+    print_network(network);
+*/
 
     free_vectors(vecs, nb_vec);
     free_network(network);
