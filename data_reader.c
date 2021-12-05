@@ -1,4 +1,5 @@
 // gcc data_reader.c -std=c99 -lm
+//gcc data_reader.c -std=c99 -lm -Wall -Wconversion -Werror -Wextra -Wpedantic && ./a.out
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,17 +35,16 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
     //printf("lines : %d\n", lines);
 
     // allocate vector list
-    vec_t * vecs = (vec_t *)malloc(lines * sizeof(vec_t));
+    vec_t * vecs = (vec_t *)malloc((size_t)lines * (int)sizeof(vec_t));
 
     int count = 0, dimension = 4;
-    int i;
     // reading data by pattern and making vector list
     while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
         //printf("%lf,%lf,%lf,%lf,%s\n", a, b, c, d, label);
         // allocation
         // TODO check malloc if not null
-        vecs[count].v = (double *)malloc(dimension * sizeof(double));
-        vecs[count].label = (char *)malloc(sizeof(char));
+        vecs[count].v = (double *)malloc((size_t)dimension * (int)sizeof(double));
+        vecs[count].label = (char *)malloc((int)sizeof(char));
 
         // copy data
         vecs[count].v[0] = a;
@@ -76,7 +76,7 @@ void free_vectors(vec_t * vecs, int nb_vec){
 }
 
 void normalize_vector(vec_t * vecs, int nb_vec){
-    int i, j;
+    int i;
     double max, min;
     max = vecs[0].v[0];
     min = vecs[0].v[0];
@@ -195,14 +195,14 @@ bmu_t get_bmu(net_t * net){
 }
 
 void init_network(net_t * config){
-    config->map = (node_t *)malloc(config->nb_row * config->nb_column * sizeof(node_t));
+    config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
     int i, j;
     for(i = 0; i < config->nb_row * config->nb_column; i++){
         //printf("%lf %d \n", (double)rand() / (double)RAND_MAX, i);
-        config->map[i].w = (double *)malloc(config->vec_size * sizeof(double));
+        config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
         assert(config->map[i].w != NULL);
         for(j = 0; j < config->vec_size; j++)
-            config->map[i].w[j] = (double)rand() / (double)RAND_MAX, i;
+            config->map[i].w[j] = (double)rand() / (double)RAND_MAX;
     }
     //printf("%lf\n", weight[0].w[0]);
 }
@@ -236,7 +236,7 @@ void network_config(net_t * config, int nb_vec, int vec_size){
 }
 
 void free_network(net_t net){
-    int i,j;
+    int i;
     for(i = 0; i < net.nb_row * net.nb_column; i++){
         free(net.map[i].w);
     }
@@ -318,7 +318,7 @@ void training_network(vec_t * vecs, net_t * net, int nb_vecs){
 int main(){
     vec_t * vecs;
     int nb_vec;
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     fetch_iris_data(&vecs, &nb_vec);
     //print_vectors(vecs, nb_vec);
     normalize_vector(vecs, nb_vec);
