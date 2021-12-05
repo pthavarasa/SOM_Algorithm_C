@@ -331,7 +331,7 @@ int main(){
     //printf("%d\n", network.nb_iter);
     //printf("%lf\n", network.map[0].w[0]);
 
-    print_network(network);
+    //print_network(network);
     //add_bmu(&network, 1, 4);
     //add_bmu(&network, 2, 4);
     //printf("%d\n", get_bmu(&network).row);
@@ -352,11 +352,30 @@ int main(){
 
     //printf("%d\n", is_neighborhood(b, 2,3,1));
 
-    printf("-------------------------------------------");
+    //printf("-------------------------------------------");
     training_network(vecs, &network, nb_vec);
-    print_network(network);
+    //print_network(network);
 
-
+    int v[60];
+    int i;
+    bmu_t bmu;
+    for(i = 0; i < 60; i++){
+        v[i] = 0;
+    }
+    for(i = 0; i < nb_vec; i++){
+        find_best_matching_unit(vecs[i], &network);
+        bmu = get_bmu(&network);
+        if(strcmp(vecs[i].label, "Iris-setosa"))
+            v[bmu.row * 6 + bmu.column] = 1;
+        else if(strcmp(vecs[i].label, "Iris-versicolor"))
+            v[bmu.row * 6 + bmu.column] = 2;
+        else if(strcmp(vecs[i].label, "Iris-virginica"))
+            v[bmu.row * 6 + bmu.column] = 3;
+    }
+    for(i = 0; i < 60; i++){
+        if(i%10 == 0)printf("\n");
+        printf("%d", v[i]);
+    }
 
 
 
