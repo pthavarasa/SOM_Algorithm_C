@@ -1,4 +1,3 @@
-// gcc data_reader.c -std=c99 -lm
 //gcc data_reader.c -std=c99 -lm -Wall -Wconversion -Werror -Wextra -Wpedantic && ./a.out
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +8,7 @@
 
 typedef struct vec{
     double * v;
-    int v_len;
+    double norm;
     char * label;
 }vec_t;
 
@@ -51,7 +50,6 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
         vecs[count].v[1] = b;
         vecs[count].v[2] = c;
         vecs[count].v[3] = d;
-        vecs[count].v_len = dimension;
         strcpy(vecs[count].label, label);
         count++;
     }
@@ -74,7 +72,7 @@ void free_vectors(vec_t * vecs, int nb_vec){
         free(vecs[i].v);
     free(vecs);
 }
-
+/*
 void normalize_vector(vec_t * vecs, int nb_vec){
     int i;
     double max, min;
@@ -94,17 +92,36 @@ void normalize_vector(vec_t * vecs, int nb_vec){
         }
     }
 }
+*/
 
-void shuffle_vectors(vec_t * vecs, int nb_vec){
+void normalize_vector(vec_t * vecs, int nb_vec, int dimension){
     int i;
-    int random;
-    vec_t temp;
+    double sum;
+    for(i = 0; i < nb_vec; i++){
+        sum = 0.0;
+        for (int j = 0; j < dimension; j++)
+            sum += vecs[i].v[j];
+        vecs[i].norm = sqrt(sum);
+    }
+    for (i = 0; i < nb_vec; i++){
+        for (int j = 0; j < dimension; j++)
+            vecs[i].v[j] = vecs[i].v[j] / vecs[i].norm;
+    }
+}
+
+void shuffle_vectors(int ** vec, int nb_vec){
+    int i;
+    int random, tmp;
+    int * v = (int *)malloc((size_t)nb_vec * (int)sizeof(int));
+    for(i = 0; i < nb_vec; i++)
+        v[i] = i;
     for(i = 0; i < nb_vec; i++){
         random = rand() % nb_vec;
-        temp = vecs[i];
-        vecs[i] = vecs[random];
-        vecs[random] = temp;
+        tmp = v[i];
+        v[i] = v[random];
+        v[random] = tmp;
     }
+    *vec = v;
 }
 
 typedef struct node{
@@ -272,7 +289,7 @@ void find_best_matching_unit(vec_t vec, net_t * net){
 
 void alter_weight(vec_t vec, net_t * net, bmu_t bmu, int iter){
     double alpha;
-    if(iter > net->nb_iter/4)
+    if(iter > net->nb_iter/5)
         alpha = net->alpha/10;
     else
         alpha = net->alpha;
@@ -291,18 +308,18 @@ int is_neighborhood(bmu_t bmu_pos, int weight_row, int weight_column, int nhd_di
     return 0;
 }
 
-void training_network(vec_t * vecs, net_t * net, int nb_vecs){
+void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
     int i, j, iter, nhd_dist;
     vec_t vec;
     bmu_t pos;
     bmu_t bmu;
     for(iter = 0; iter < net->nb_iter; iter++){
-        vec = vecs[iter%nb_vecs];
+        vec = vecs[shuf_vec[iter%nb_vecs]];
         find_best_matching_unit(vec, net);
         bmu = get_bmu(net);
         for(i = 0; i < net->nb_row; i++){
             for(j = 0; j < net->nb_column; j++){
-                if(iter > net->nb_iter/4)
+                if(iter > net->nb_iter/5)
                     nhd_dist = 1;
                 else
                     nhd_dist = 3;
@@ -317,13 +334,14 @@ void training_network(vec_t * vecs, net_t * net, int nb_vecs){
 
 int main(){
     vec_t * vecs;
+    int * vec;
     int nb_vec;
     srand((unsigned int)time(NULL));
     fetch_iris_data(&vecs, &nb_vec);
     //print_vectors(vecs, nb_vec);
-    normalize_vector(vecs, nb_vec);
+    normalize_vector(vecs, nb_vec, 4);
     //print_vectors(vecs, nb_vec);
-    shuffle_vectors(vecs, nb_vec);
+    shuffle_vectors(&vec, nb_vec);
     //print_vectors(vecs, nb_vec);
 
     net_t network;
@@ -353,7 +371,7 @@ int main(){
     //printf("%d\n", is_neighborhood(b, 2,3,1));
 
     //printf("-------------------------------------------");
-    training_network(vecs, &network, nb_vec);
+    training_network(vecs, vec, &network, nb_vec);
     //print_network(network);
 
     int v[60];
@@ -365,11 +383,11 @@ int main(){
     for(i = 0; i < nb_vec; i++){
         find_best_matching_unit(vecs[i], &network);
         bmu = get_bmu(&network);
-        if(strcmp(vecs[i].label, "Iris-setosa"))
+        if(!strcmp(vecs[vec[i]].label, "Iris-setosa"))
             v[bmu.row * 6 + bmu.column] = 1;
-        else if(strcmp(vecs[i].label, "Iris-versicolor"))
+        else if(!strcmp(vecs[vec[i]].label, "Iris-versicolor"))
             v[bmu.row * 6 + bmu.column] = 2;
-        else if(strcmp(vecs[i].label, "Iris-virginica"))
+        else if(!strcmp(vecs[vec[i]].label, "Iris-virginica"))
             v[bmu.row * 6 + bmu.column] = 3;
     }
     for(i = 0; i < 60; i++){
