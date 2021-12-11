@@ -319,10 +319,12 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
         bmu = get_bmu(net);
         for(i = 0; i < net->nb_row; i++){
             for(j = 0; j < net->nb_column; j++){
-                if(iter > net->nb_iter/5)
-                    nhd_dist = 1;
-                else
+                if(iter <= net->nb_iter/5){
                     nhd_dist = 3;
+                    nhd_dist = (int)(nhd_dist - iter/((net->nb_iter/5)/nhd_dist));
+                    if(!nhd_dist) nhd_dist = 1;
+                }else
+                    nhd_dist = 1;
                 pos.row = i;
                 pos.column = j;
                 if(is_neighborhood(bmu, i, j, nhd_dist))
@@ -331,6 +333,7 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
         }
     }
 }
+
 
 int main(){
     vec_t * vecs;
