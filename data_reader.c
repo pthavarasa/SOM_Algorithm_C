@@ -95,16 +95,17 @@ void normalize_vector(vec_t * vecs, int nb_vec){
 */
 
 void normalize_vector(vec_t * vecs, int nb_vec, int dimension){
-    int i;
+    int i,j;
     double sum;
     for(i = 0; i < nb_vec; i++){
         sum = 0.0;
-        for (int j = 0; j < dimension; j++)
-            sum += vecs[i].v[j];
+        for (j = 0; j < dimension; j++)
+            sum += vecs[i].v[j] * vecs[i].v[j];
         vecs[i].norm = sqrt(sum);
+        //printf("%d - %lf\n", i, vecs[i].norm);
     }
     for (i = 0; i < nb_vec; i++){
-        for (int j = 0; j < dimension; j++)
+        for (j = 0; j < dimension; j++)
             vecs[i].v[j] = vecs[i].v[j] / vecs[i].norm;
     }
 }
@@ -210,7 +211,7 @@ bmu_t get_bmu(net_t * net){
     bmu.column = ptr->column;
     return bmu;
 }
-
+/*
 void init_network(net_t * config){
     config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
     int i, j;
@@ -220,6 +221,29 @@ void init_network(net_t * config){
         assert(config->map[i].w != NULL);
         for(j = 0; j < config->vec_size; j++)
             config->map[i].w[j] = (double)rand() / (double)RAND_MAX;
+    }
+    //printf("%lf\n", weight[0].w[0]);
+}
+*/
+double avarage_vector(vec_t * vecs, int nb_vecs, int dimension){
+    int i,j;
+    double sum = 0;
+    for(i = 0; i < nb_vecs; i++)
+        for(j = 0; j < dimension; j++)
+            sum += vecs[i].v[j];
+    return sum / (nb_vecs * dimension);
+}
+
+void init_network(net_t * config, double vec_avg){
+    config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
+    int i, j;
+    double min = vec_avg - 0.002, max = vec_avg + 0.005;
+    for(i = 0; i < config->nb_row * config->nb_column; i++){
+        //printf("%lf %d \n", (double)rand() / (double)RAND_MAX, i);
+        config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
+        assert(config->map[i].w != NULL);
+        for(j = 0; j < config->vec_size; j++)
+            config->map[i].w[j] = min + fmod((double)rand(), (max - min));
     }
     //printf("%lf\n", weight[0].w[0]);
 }
@@ -235,7 +259,7 @@ void print_network(net_t config){
     }
 }
 
-void network_config(net_t * config, int nb_vec, int vec_size){
+void network_config(net_t * config, int nb_vec, int vec_size, double vec_avg){
     // 5 * sqrt(nb_vectors)
     config->nb_node = 5 * (int)sqrt(nb_vec);
     config->nb_row = 6;
@@ -247,7 +271,7 @@ void network_config(net_t * config, int nb_vec, int vec_size){
     config->nb_nhd = 3;
     config->alpha = 0.7;
     config->vec_size = 4;
-    init_network(config);
+    init_network(config, vec_avg);
     //printf("%lf\n", config->map[0].w[0]);
     config->bmu = NULL;
 }
@@ -287,7 +311,7 @@ void find_best_matching_unit(vec_t vec, net_t * net){
     }
 }
 
-void alter_weight(vec_t vec, net_t * net, bmu_t bmu, int iter){
+void alter_weight_by_distance(vec_t vec, net_t * net, bmu_t bmu, int iter){
     double alpha;
     if(iter > net->nb_iter/5)
         alpha = net->alpha/10;
@@ -299,6 +323,30 @@ void alter_weight(vec_t vec, net_t * net, bmu_t bmu, int iter){
     int i;
     for(i = 0; i < net->vec_size; i++){
         weight[i] = weight[i] + alpha * (vec.v[i] - weight[i]);
+    }
+}
+
+void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_dist){
+    int x,y, row, column;
+    double alpha;
+    for(x = -nhd_dist; x <= nhd_dist; x++){
+        for(y = -nhd_dist; y <= nhd_dist; y++){
+            row = bmu.row + x;
+            column = bmu.column + y;
+            if(row >= 0 && row < net->nb_row && column >= 0 && column < net->nb_column){
+                if(iter > net->nb_iter/5)
+                    alpha = net->alpha/10;
+                else
+                    alpha = net->alpha;
+                alpha = alpha * (1 - iter / net->nb_iter);
+                double * weight;
+                weight = net->map[row * net->nb_row + column].w;
+                int i;
+                for(i = 0; i < net->vec_size; i++){
+                    weight[i] = weight[i] + alpha * (vec.v[i] - weight[i]);
+                }
+            }
+        }
     }
 }
 
@@ -317,6 +365,16 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
         vec = vecs[shuf_vec[iter%nb_vecs]];
         find_best_matching_unit(vec, net);
         bmu = get_bmu(net);
+
+        if(iter <= net->nb_iter/5){
+            nhd_dist = 3;
+            nhd_dist = (int)(nhd_dist - iter/((net->nb_iter/5)/nhd_dist));
+            if(!nhd_dist) nhd_dist = 1;
+        }else
+            nhd_dist = 1;
+        alter_weight_nhd(vec, net, bmu, iter, nhd_dist);
+        
+        /*
         for(i = 0; i < net->nb_row; i++){
             for(j = 0; j < net->nb_column; j++){
                 if(iter <= net->nb_iter/5){
@@ -331,6 +389,7 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
                     alter_weight(vec, net, pos, iter);
             }
         }
+        */
     }
 }
 
@@ -344,11 +403,11 @@ int main(){
     //print_vectors(vecs, nb_vec);
     normalize_vector(vecs, nb_vec, 4);
     //print_vectors(vecs, nb_vec);
+    //printf("%lf\n", avarage_vector(vecs, nb_vec, 4));
     shuffle_vectors(&vec, nb_vec);
-    //print_vectors(vecs, nb_vec);
 
     net_t network;
-    network_config(&network, nb_vec, 4);
+    network_config(&network, nb_vec, 4, avarage_vector(vecs, nb_vec, 4));
     //printf("%d\n", network.nb_iter);
     //printf("%lf\n", network.map[0].w[0]);
 
@@ -364,13 +423,13 @@ int main(){
     //printf("%d\n", get_bmu(&network).row);
 /*
     bmu_t b;
-    b.row = 4;
-    b.column = 4;
-    print_network(network);
+    b.row = 3;
+    b.column = 3;
+    //print_network(network);
     printf("------------------");
-    alter_weight(vecs[0], &network, b, 0);
-    print_network(network);*/
-
+    alter_weight_nhd(vecs[0], &network, b, 0, 1);
+    //print_network(network);
+*/
     //printf("%d\n", is_neighborhood(b, 2,3,1));
 
     //printf("-------------------------------------------");
