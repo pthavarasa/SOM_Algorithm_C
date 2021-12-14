@@ -1,16 +1,9 @@
-//gcc data_reader.c -std=c99 -lm -Wall -Wconversion -Werror -Wextra -Wpedantic && ./a.out
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <math.h>
-#include <assert.h>
+#include "som.h"
 
-typedef struct vec{
-    double * v;
-    double norm;
-    char * label;
-}vec_t;
+void allocation_failure_handle(){
+    printf("allocation failure!\n");
+    exit(0);
+}
 
 void fetch_iris_data(vec_t ** vectors, int * nb_vector){
     // open file in read mode
@@ -18,7 +11,7 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
     // checking if file exist
     if (file == NULL){
         printf("File not found!\n");
-        return;
+        exit(0);
     }
 
     double a, b, c, d;
@@ -31,19 +24,20 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
             lines++;
     // set the file position to the beginning of the file
     rewind(file);
-    //printf("lines : %d\n", lines);
 
     // allocate vector list
     vec_t * vecs = (vec_t *)malloc((size_t)lines * (int)sizeof(vec_t));
+    if(vecs == NULL) allocation_failure_handle();
 
     int count = 0, dimension = 4;
     // reading data by pattern and making vector list
     while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
-        //printf("%lf,%lf,%lf,%lf,%s\n", a, b, c, d, label);
+
         // allocation
-        // TODO check malloc if not null
         vecs[count].v = (double *)malloc((size_t)dimension * (int)sizeof(double));
+        if(vecs[count].v == NULL) allocation_failure_handle();
         vecs[count].label = (char *)malloc((int)sizeof(char));
+        if(vecs[count].label == NULL) allocation_failure_handle();
 
         // copy data
         vecs[count].v[0] = a;
@@ -72,48 +66,12 @@ void free_vectors(vec_t * vecs, int nb_vec){
         free(vecs[i].v);
     free(vecs);
 }
-/*
-void normalize_vector(vec_t * vecs, int nb_vec){
-    int i;
-    double max, min;
-    max = vecs[0].v[0];
-    min = vecs[0].v[0];
-    // finding max value of vector
-    for(i = 0; i < nb_vec; i++){
-        for (int j = 0; j < vecs[i].v_len; j++){
-            if(max < vecs[i].v[j]) max = vecs[i].v[j];
-            if(min > vecs[i].v[j]) min = vecs[i].v[j];
-        }
-    }
-    // normalize
-    for (i = 0; i < nb_vec; i++){
-        for (int j = 0; j < vecs[i].v_len; j++){
-            vecs[i].v[j] = (vecs[i].v[j] - min) / (max - min);
-        }
-    }
-}
-*/
-
-void normalize_vector(vec_t * vecs, int nb_vec, int dimension){
-    int i,j;
-    double sum;
-    for(i = 0; i < nb_vec; i++){
-        sum = 0.0;
-        for (j = 0; j < dimension; j++)
-            sum += vecs[i].v[j] * vecs[i].v[j];
-        vecs[i].norm = sqrt(sum);
-        //printf("%d - %lf\n", i, vecs[i].norm);
-    }
-    for (i = 0; i < nb_vec; i++){
-        for (j = 0; j < dimension; j++)
-            vecs[i].v[j] = vecs[i].v[j] / vecs[i].norm;
-    }
-}
 
 void shuffle_vectors(int ** vec, int nb_vec){
     int i;
     int random, tmp;
     int * v = (int *)malloc((size_t)nb_vec * (int)sizeof(int));
+    if(v == NULL) allocation_failure_handle();
     for(i = 0; i < nb_vec; i++)
         v[i] = i;
     for(i = 0; i < nb_vec; i++){
@@ -125,33 +83,25 @@ void shuffle_vectors(int ** vec, int nb_vec){
     *vec = v;
 }
 
-typedef struct node{
-    double * w;
-    double activation;
-    char * label;
-}node_t;
-
-typedef struct bmu bmu_t;
-struct bmu{
-    int row, column;
-    bmu_t * next;
-};
-
-typedef struct net{
-    int nb_node;
-    int nb_row;
-    int nb_column;
-    int nb_iter;
-    double alpha;
-    int nb_nhd; //neighborhood
-    int vec_size;
-    node_t * map;
-    bmu_t * bmu; // best matching unit
-}net_t;
+void normalize_vector(vec_t * vecs, int nb_vec, int dimension){
+    int i,j;
+    double sum;
+    for(i = 0; i < nb_vec; i++){
+        sum = 0.0;
+        for (j = 0; j < dimension; j++)
+            sum += vecs[i].v[j] * vecs[i].v[j];
+        vecs[i].norm = sqrt(sum);
+    }
+    for (i = 0; i < nb_vec; i++){
+        for (j = 0; j < dimension; j++)
+            vecs[i].v[j] = vecs[i].v[j] / vecs[i].norm;
+    }
+}
 
 void add_bmu(net_t * net, int row, int column){
     if(net->bmu == NULL){
         net->bmu = (bmu_t*)malloc(sizeof(bmu_t));
+        if(net->bmu == NULL) allocation_failure_handle();
         net->bmu->row = row;
         net->bmu->column = column;
         net->bmu->next = NULL;
@@ -161,6 +111,7 @@ void add_bmu(net_t * net, int row, int column){
             ptr = ptr->next;
         }
         ptr->next = (bmu_t*)malloc(sizeof(bmu_t));
+        if(ptr->next == NULL) allocation_failure_handle();
         ptr->next->row = row;
         ptr->next->column = column;
         ptr->next->next = NULL;
@@ -211,20 +162,7 @@ bmu_t get_bmu(net_t * net){
     bmu.column = ptr->column;
     return bmu;
 }
-/*
-void init_network(net_t * config){
-    config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
-    int i, j;
-    for(i = 0; i < config->nb_row * config->nb_column; i++){
-        //printf("%lf %d \n", (double)rand() / (double)RAND_MAX, i);
-        config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
-        assert(config->map[i].w != NULL);
-        for(j = 0; j < config->vec_size; j++)
-            config->map[i].w[j] = (double)rand() / (double)RAND_MAX;
-    }
-    //printf("%lf\n", weight[0].w[0]);
-}
-*/
+
 double avarage_vector(vec_t * vecs, int nb_vecs, int dimension){
     int i,j;
     double sum = 0;
@@ -236,16 +174,15 @@ double avarage_vector(vec_t * vecs, int nb_vecs, int dimension){
 
 void init_network(net_t * config, double vec_avg){
     config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
+    if(config->map == NULL) allocation_failure_handle();
     int i, j;
     double min = vec_avg - 0.002, max = vec_avg + 0.005;
     for(i = 0; i < config->nb_row * config->nb_column; i++){
-        //printf("%lf %d \n", (double)rand() / (double)RAND_MAX, i);
         config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
-        assert(config->map[i].w != NULL);
+        if(config->map[i].w == NULL) allocation_failure_handle();
         for(j = 0; j < config->vec_size; j++)
             config->map[i].w[j] = min + fmod((double)rand(), (max - min));
     }
-    //printf("%lf\n", weight[0].w[0]);
 }
 
 void print_network(net_t config){
@@ -264,15 +201,14 @@ void network_config(net_t * config, int nb_vec, int vec_size, double vec_avg){
     config->nb_node = 5 * (int)sqrt(nb_vec);
     config->nb_row = 6;
     config->nb_column = 10;
-    // 500 * nb_vectors | 1st => 188 ( nb_iter/4 ) | 2nd => 562 ( nb_iter - (nb_iter/4) )
-    config->nb_iter = 500 * vec_size;
+    // 500 * nb_vectors | 1st => ( nb_iter/4 ) | 2nd => ( nb_iter - (nb_iter/4) )
+    config->nb_iter = 500 * nb_vec;
     // 50% of nb_node => nb_node * 0.5 => 60 * 0.5 = 30
     // 8*n+1 => (8*0+1) + (8*1+1) + (8*2+1) + (8*3+1) = 49 (49>30) => n=3
     config->nb_nhd = 3;
     config->alpha = 0.7;
     config->vec_size = 4;
     init_network(config, vec_avg);
-    //printf("%lf\n", config->map[0].w[0]);
     config->bmu = NULL;
 }
 
@@ -293,13 +229,12 @@ double euclidean_distance(double * vec, double * weight, int size){
     return sqrt(sum);
 }
 
-
 void find_best_matching_unit(vec_t vec, net_t * net){
     int i, j;
     double min_dist = 1<<20, dist;
     for(i = 0; i < net->nb_row; i++){
         for(j = 0; j < net->nb_column; j++){
-            dist = euclidean_distance(vec.v, net->map[i * net->nb_row + j].w, net->vec_size);
+            dist = euclidean_distance(vec.v, net->map[i * net->nb_column + j].w, net->vec_size);
             if(dist < min_dist){
                 min_dist = dist;
                 delete_all_bmu(net);
@@ -319,7 +254,7 @@ void alter_weight_by_distance(vec_t vec, net_t * net, bmu_t bmu, int iter){
         alpha = net->alpha;
     alpha = alpha * (1 - iter / net->nb_iter);
     double * weight;
-    weight = net->map[bmu.row * net->nb_row + bmu.column].w;
+    weight = net->map[bmu.row * net->nb_column + bmu.column].w;
     int i;
     for(i = 0; i < net->vec_size; i++){
         weight[i] = weight[i] + alpha * (vec.v[i] - weight[i]);
@@ -340,7 +275,7 @@ void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_dist)
                     alpha = net->alpha;
                 alpha = alpha * (1 - iter / net->nb_iter);
                 double * weight;
-                weight = net->map[row * net->nb_row + column].w;
+                weight = net->map[row * net->nb_column + column].w;
                 int i;
                 for(i = 0; i < net->vec_size; i++){
                     weight[i] = weight[i] + alpha * (vec.v[i] - weight[i]);
@@ -357,9 +292,8 @@ int is_neighborhood(bmu_t bmu_pos, int weight_row, int weight_column, int nhd_di
 }
 
 void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
-    int i, j, iter, nhd_dist;
+    int iter, nhd_dist;
     vec_t vec;
-    bmu_t pos;
     bmu_t bmu;
     for(iter = 0; iter < net->nb_iter; iter++){
         vec = vecs[shuf_vec[iter%nb_vecs]];
@@ -375,6 +309,8 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
         alter_weight_nhd(vec, net, bmu, iter, nhd_dist);
         
         /*
+        int i,j;
+        bmu_t pos;
         for(i = 0; i < net->nb_row; i++){
             for(j = 0; j < net->nb_column; j++){
                 if(iter <= net->nb_iter/5){
@@ -394,72 +330,58 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
 }
 
 
-int main(){
-    vec_t * vecs;
-    int * vec;
-    int nb_vec;
-    srand((unsigned int)time(NULL));
-    fetch_iris_data(&vecs, &nb_vec);
-    //print_vectors(vecs, nb_vec);
-    normalize_vector(vecs, nb_vec, 4);
-    //print_vectors(vecs, nb_vec);
-    //printf("%lf\n", avarage_vector(vecs, nb_vec, 4));
-    shuffle_vectors(&vec, nb_vec);
-
-    net_t network;
-    network_config(&network, nb_vec, 4, avarage_vector(vecs, nb_vec, 4));
-    //printf("%d\n", network.nb_iter);
-    //printf("%lf\n", network.map[0].w[0]);
-
-    //print_network(network);
-    //add_bmu(&network, 1, 4);
-    //add_bmu(&network, 2, 4);
-    //printf("%d\n", get_bmu(&network).row);
-    //printf("%d\n", count_bmu(&network));
-
-    //printf("%lf\n", euclidean_distance(vecs[0].v, network.map[0].w, 4));
-
-    //find_best_matching_unit(vecs[0], &network);
-    //printf("%d\n", get_bmu(&network).row);
 /*
-    bmu_t b;
-    b.row = 3;
-    b.column = 3;
-    //print_network(network);
-    printf("------------------");
-    alter_weight_nhd(vecs[0], &network, b, 0, 1);
-    //print_network(network);
-*/
-    //printf("%d\n", is_neighborhood(b, 2,3,1));
-
-    //printf("-------------------------------------------");
-    training_network(vecs, vec, &network, nb_vec);
-    //print_network(network);
-
-    int v[60];
+void normalize_vector(vec_t * vecs, int nb_vec){
     int i;
-    bmu_t bmu;
-    for(i = 0; i < 60; i++){
-        v[i] = 0;
-    }
+    double max, min;
+    max = vecs[0].v[0];
+    min = vecs[0].v[0];
+    // finding max value of vector
     for(i = 0; i < nb_vec; i++){
-        find_best_matching_unit(vecs[i], &network);
-        bmu = get_bmu(&network);
-        if(!strcmp(vecs[vec[i]].label, "Iris-setosa"))
-            v[bmu.row * 6 + bmu.column] = 1;
-        else if(!strcmp(vecs[vec[i]].label, "Iris-versicolor"))
-            v[bmu.row * 6 + bmu.column] = 2;
-        else if(!strcmp(vecs[vec[i]].label, "Iris-virginica"))
-            v[bmu.row * 6 + bmu.column] = 3;
+        for (int j = 0; j < vecs[i].v_len; j++){
+            if(max < vecs[i].v[j]) max = vecs[i].v[j];
+            if(min > vecs[i].v[j]) min = vecs[i].v[j];
+        }
     }
-    for(i = 0; i < 60; i++){
-        if(i%10 == 0)printf("\n");
-        printf("%d", v[i]);
+    // normalize
+    for (i = 0; i < nb_vec; i++){
+        for (int j = 0; j < vecs[i].v_len; j++){
+            vecs[i].v[j] = (vecs[i].v[j] - min) / (max - min);
+        }
     }
-
-
-
-    free_vectors(vecs, nb_vec);
-    free_network(network);
-    return 1;
 }
+*/
+
+/*
+void shuffle_vectors(int ** vec, int nb_vec){
+    int i;
+    int random, tmp;
+    int * v = (int *)malloc((size_t)nb_vec * (int)sizeof(int));
+    if(v == NULL) allocation_failure_handle();
+    for(i = 0; i < nb_vec; i++)
+        v[i] = i;
+    for(i = 0; i < nb_vec; i++){
+        random = rand() % nb_vec;
+        tmp = v[i];
+        v[i] = v[random];
+        v[random] = tmp;
+    }
+    *vec = v;
+}
+*/
+
+/*
+void init_network(net_t * config){
+    config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
+    if(config->map == NULL) allocation_failure_handle();
+    int i, j;
+    for(i = 0; i < config->nb_row * config->nb_column; i++){
+        //printf("%lf %d \n", (double)rand() / (double)RAND_MAX, i);
+        config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
+        if(config->map[i].w == NULL) allocation_failure_handle();
+        for(j = 0; j < config->vec_size; j++)
+            config->map[i].w[j] = (double)rand() / (double)RAND_MAX;
+    }
+    //printf("%lf\n", weight[0].w[0]);
+}
+*/
