@@ -329,6 +329,27 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
     }
 }
 
+void save_network(net_t * net){
+    FILE *fptr;
+
+    // use appropriate location if you are using MacOS or Linux
+    fptr = fopen("net.txt","w");
+
+    if(fptr == NULL){
+        printf("Error!");   
+        exit(1);             
+    }
+
+    int i, j;
+    for(i = 0; i < net->nb_row * net->nb_column; i++){
+        for(j = 0; j < net->vec_size; j++){
+            fprintf(fptr,"%lf,",net->map[i].w[j]);
+        }
+    }
+
+    fclose(fptr);
+}
+
 
 /*
 void normalize_vector(vec_t * vecs, int nb_vec){

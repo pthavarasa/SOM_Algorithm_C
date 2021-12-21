@@ -22,11 +22,11 @@ int main(){
     for(i = 0; i < nb_vec; i++){
         find_best_matching_unit(vecs[i], &network);
         bmu = get_bmu(&network);
-        if(!strcmp(vecs[vec[i]].label, "Iris-setosa"))
+        if(!strcmp(vecs[i].label, "Iris-setosa"))
             v[bmu.row * 10 + bmu.column] = 1;
-        else if(!strcmp(vecs[vec[i]].label, "Iris-versicolor"))
+        else if(!strcmp(vecs[i].label, "Iris-versicolor"))
             v[bmu.row * 10 + bmu.column] = 2;
-        else if(!strcmp(vecs[vec[i]].label, "Iris-virginica"))
+        else if(!strcmp(vecs[i].label, "Iris-virginica"))
             v[bmu.row * 10 + bmu.column] = 3;
     }
     for(i = 0; i < 60; i++){
