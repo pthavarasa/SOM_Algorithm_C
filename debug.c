@@ -3,8 +3,10 @@
 int main(){
     vec_t * vecs;
     int * vec;
-    int nb_vec;
+    int nb_vec, nb_dimension;
     srand((unsigned int)time(NULL));
+    load_data(&vecs, &nb_vec, &nb_dimension);
+ 
     fetch_iris_data(&vecs, &nb_vec);
     //print_vectors(vecs, nb_vec);
     normalize_vector(vecs, nb_vec, 4);
@@ -27,6 +29,7 @@ int main(){
 
     //find_best_matching_unit(vecs[0], &network);
     //printf("%d\n", get_bmu(&network).row);
+
 /*
     bmu_t b;
     b.row = 3;
@@ -42,7 +45,7 @@ int main(){
     //printf("-------------------------------------------");
     training_network(vecs, vec, &network, nb_vec);
     //print_network(network);
-    save_network(&network);
+    //save_network(&network);
 
 int v[60];
     int i;

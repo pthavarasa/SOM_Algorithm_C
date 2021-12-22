@@ -35,6 +35,7 @@ typedef struct net{
 }net_t;
 
 void fetch_iris_data(vec_t ** vectors, int * nb_vector);
+void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension);
 void print_vectors(vec_t * vecs, int nb_vec);
 void free_vectors(vec_t * vecs, int nb_vec);
 void normalize_vector(vec_t * vecs, int nb_vec, int dimension);

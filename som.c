@@ -2,7 +2,7 @@
 
 void allocation_failure_handle(){
     printf("allocation failure!\n");
-    exit(0);
+    exit(EXIT_FAILURE);
 }
 
 void fetch_iris_data(vec_t ** vectors, int * nb_vector){
@@ -52,6 +52,73 @@ void fetch_iris_data(vec_t ** vectors, int * nb_vector){
 
     *vectors = vecs;
     *nb_vector = count;
+}
+
+void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension){
+    // open file in read mode
+    FILE *file = fopen("iris.data", "r");
+    // checking if file exist
+    if (file == NULL){
+        printf("File not found!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int lines = 1;
+    // counting the number of lines in the file by finding '\n' count
+    while(!feof(file))
+        if(fgetc(file) == '\n')
+            lines++;
+    // set the file position to the beginning of the file
+    rewind(file);
+
+    // allocate vector list
+    vec_t * vecs = (vec_t *)malloc((size_t)lines * (int)sizeof(vec_t));
+    if(vecs == NULL) allocation_failure_handle();
+
+    char *line = NULL;
+    size_t len = 0;
+    char * strToken;
+    const char * separator = ",";
+    int dimension = 0, length = 0, count;
+    while(getline(&line, &len, file) != -1) {
+        //printf("line length: %zd\n", strlen(line));
+        //printf ("%c", line[strlen(line)-1]);
+        if(line[strlen(line)-1] == '\n') line[strlen(line)-1] = '\0';
+        if(!strlen(line)) continue;
+        if(!length){
+            char *ptr = line;
+            while((ptr = strchr(ptr, ',')) != NULL) {
+                dimension++;
+                ptr++;
+            }
+            //printf("%d\n", dimension);
+        }
+
+        vecs[length].v = (double *)malloc((size_t)dimension * (int)sizeof(double));
+        if(vecs[length].v == NULL) allocation_failure_handle();
+
+        strToken = strtok (line, separator);
+        count = 0;
+        while (strToken != NULL){
+            //printf("%s", strToken);
+            if(count == dimension){
+                vecs[length].label = (char *)malloc((size_t)strlen(strToken) * (int)sizeof(char));
+                if(vecs[length].label == NULL) allocation_failure_handle();
+                strcpy(vecs[length].label, strToken);
+            }else{
+                vecs[length].v[count] = atof(strToken);
+            }
+            strToken = strtok(NULL, separator);
+            count++;
+        }
+        length++;
+    }
+
+    fclose(file);
+
+    *vectors = vecs;
+    *nb_vector = length;
+    *nb_dimension = dimension;
 }
 
 void print_vectors(vec_t * vecs, int nb_vec){
