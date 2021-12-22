@@ -5,9 +5,9 @@ int main(){
     int * vec;
     int nb_vec, nb_dimension;
     srand((unsigned int)time(NULL));
-    load_data(&vecs, &nb_vec, &nb_dimension);
+    load_data(&vecs, &nb_vec, &nb_dimension, ",");
  
-    fetch_iris_data(&vecs, &nb_vec);
+    //fetch_iris_data(&vecs, &nb_vec);
     //print_vectors(vecs, nb_vec);
     normalize_vector(vecs, nb_vec, 4);
     //print_vectors(vecs, nb_vec);

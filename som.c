@@ -5,56 +5,7 @@ void allocation_failure_handle(){
     exit(EXIT_FAILURE);
 }
 
-void fetch_iris_data(vec_t ** vectors, int * nb_vector){
-    // open file in read mode
-    FILE *file = fopen("iris.data", "r");
-    // checking if file exist
-    if (file == NULL){
-        printf("File not found!\n");
-        exit(0);
-    }
-
-    double a, b, c, d;
-    char label[20];
-    int lines = 1;
-
-    // counting the number of lines in the file by finding '\n' count
-    while(!feof(file))
-        if(fgetc(file) == '\n')
-            lines++;
-    // set the file position to the beginning of the file
-    rewind(file);
-
-    // allocate vector list
-    vec_t * vecs = (vec_t *)malloc((size_t)lines * (int)sizeof(vec_t));
-    if(vecs == NULL) allocation_failure_handle();
-
-    int count = 0, dimension = 4;
-    // reading data by pattern and making vector list
-    while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
-
-        // allocation
-        vecs[count].v = (double *)malloc((size_t)dimension * (int)sizeof(double));
-        if(vecs[count].v == NULL) allocation_failure_handle();
-        vecs[count].label = (char *)malloc((int)sizeof(char));
-        if(vecs[count].label == NULL) allocation_failure_handle();
-
-        // copy data
-        vecs[count].v[0] = a;
-        vecs[count].v[1] = b;
-        vecs[count].v[2] = c;
-        vecs[count].v[3] = d;
-        strcpy(vecs[count].label, label);
-        count++;
-    }
-
-    fclose(file);
-
-    *vectors = vecs;
-    *nb_vector = count;
-}
-
-void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension){
+void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension, char * separator){
     // open file in read mode
     FILE *file = fopen("iris.data", "r");
     // checking if file exist
@@ -78,7 +29,6 @@ void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension){
     char *line = NULL;
     size_t len = 0;
     char * strToken;
-    const char * separator = ",";
     int dimension = 0, length = 0, count;
     while(getline(&line, &len, file) != -1) {
         //printf("line length: %zd\n", strlen(line));
@@ -87,7 +37,7 @@ void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension){
         if(!strlen(line)) continue;
         if(!length){
             char *ptr = line;
-            while((ptr = strchr(ptr, ',')) != NULL) {
+            while((ptr = strchr(ptr, separator[0])) != NULL) {
                 dimension++;
                 ptr++;
             }
@@ -472,4 +422,56 @@ void init_network(net_t * config){
     }
     //printf("%lf\n", weight[0].w[0]);
 }
+*/
+
+/*
+
+void fetch_iris_data(vec_t ** vectors, int * nb_vector){
+    // open file in read mode
+    FILE *file = fopen("iris.data", "r");
+    // checking if file exist
+    if (file == NULL){
+        printf("File not found!\n");
+        exit(0);
+    }
+
+    double a, b, c, d;
+    char label[20];
+    int lines = 1;
+
+    // counting the number of lines in the file by finding '\n' count
+    while(!feof(file))
+        if(fgetc(file) == '\n')
+            lines++;
+    // set the file position to the beginning of the file
+    rewind(file);
+
+    // allocate vector list
+    vec_t * vecs = (vec_t *)malloc((size_t)lines * (int)sizeof(vec_t));
+    if(vecs == NULL) allocation_failure_handle();
+
+    int count = 0, dimension = 4;
+    // reading data by pattern and making vector list
+    while (fscanf(file, "%lf,%lf,%lf,%lf,%s", &a, &b, &c, &d, label) != EOF) {
+
+        // allocation
+        vecs[count].v = (double *)malloc((size_t)dimension * (int)sizeof(double));
+        if(vecs[count].v == NULL) allocation_failure_handle();
+        vecs[count].label = (char *)malloc((int)sizeof(char));
+        if(vecs[count].label == NULL) allocation_failure_handle();
+
+        // copy data
+        vecs[count].v[0] = a;
+        vecs[count].v[1] = b;
+        vecs[count].v[2] = c;
+        vecs[count].v[3] = d;
+        strcpy(vecs[count].label, label);
+        count++;
+    }
+
+    fclose(file);
+
+    *vectors = vecs;
+    *nb_vector = count;
+} 
 */
