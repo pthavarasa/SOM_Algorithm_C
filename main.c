@@ -3,14 +3,19 @@
 int main(){
     vec_t * vecs;
     int * vec;
-    int nb_vec;
+    int nb_vec, nb_dimension;
     srand((unsigned int)time(NULL));
-    fetch_iris_data(&vecs, &nb_vec);
+    load_data(&vecs, "iris.data", &nb_vec, &nb_dimension, ",");
     normalize_vector(vecs, nb_vec, 4);
-    shuffle_vectors(&vec, nb_vec);
+    init_random_vector(&vec, nb_vec);
 
     net_t network;
-    network_config(&network, nb_vec, 4, avarage_vector(vecs, nb_vec, 4));
+    network.nb_vecs = nb_vec;
+    network.vec_size = nb_dimension;
+    network.nb_row = 6;
+    network.nb_column = 10;
+    network_config(&network, vecs);
+
     training_network(vecs, vec, &network, nb_vec);
 
     int v[60];
@@ -33,7 +38,6 @@ int main(){
         if(i%10 == 0)printf("\n");
         printf("%d", v[i]);
     }
-
 
     delete_all_bmu(&network);
     free_vectors(vecs, nb_vec);

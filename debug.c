@@ -5,7 +5,7 @@ int main(){
     int * vec;
     int nb_vec, nb_dimension;
     srand((unsigned int)time(NULL));
-    load_data(&vecs, &nb_vec, &nb_dimension, ",");
+    load_data(&vecs, "iris.data", &nb_vec, &nb_dimension, ",");
  
     //fetch_iris_data(&vecs, &nb_vec);
     //print_vectors(vecs, nb_vec);
@@ -13,11 +13,14 @@ int main(){
     //print_vectors(vecs, nb_vec);
     //printf("%lf\n", avarage_vector(vecs, nb_vec, 4));
     init_random_vector(&vec, nb_vec);
-    shuffle_vector(vec, nb_vec);
 
     net_t network;
-    network_config(&network, vecs, nb_vec, nb_dimension);
-    //printf("%d\n", network.nb_iter);
+    network.nb_vecs = nb_vec;
+    network.vec_size = nb_dimension;
+    network.nb_row = 6;
+    network.nb_column = 10;
+
+    network_config(&network, vecs);
     //printf("%lf\n", network.map[0].w[0]);
 
     //print_network(network);
