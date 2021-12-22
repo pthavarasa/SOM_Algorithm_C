@@ -84,20 +84,24 @@ void free_vectors(vec_t * vecs, int nb_vec){
     free(vecs);
 }
 
-void shuffle_vectors(int ** vec, int nb_vec){
+void init_random_vector(int ** vec, int nb_vec){
     int i;
-    int random, tmp;
     int * v = (int *)malloc((size_t)nb_vec * (int)sizeof(int));
     if(v == NULL) allocation_failure_handle();
     for(i = 0; i < nb_vec; i++)
         v[i] = i;
+    *vec = v;
+}
+
+void shuffle_vector(int * vec, int nb_vec){
+    int i;
+    int random, tmp;
     for(i = 0; i < nb_vec; i++){
         random = rand() % nb_vec;
-        tmp = v[i];
-        v[i] = v[random];
-        v[random] = tmp;
+        tmp = vec[i];
+        vec[i] = vec[random];
+        vec[random] = tmp;
     }
-    *vec = v;
 }
 
 void normalize_vector(vec_t * vecs, int nb_vec, int dimension){
@@ -313,6 +317,7 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
     vec_t vec;
     bmu_t bmu;
     for(iter = 0; iter < net->nb_iter; iter++){
+        if(iter % nb_vecs == 0) shuffle_vector(shuf_vec, nb_vecs);
         vec = vecs[shuf_vec[iter%nb_vecs]];
         find_best_matching_unit(vec, net);
         bmu = get_bmu(net);

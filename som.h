@@ -39,7 +39,8 @@ void load_data(vec_t ** vectors, int * nb_vector, int * nb_dimension, char * sep
 void print_vectors(vec_t * vecs, int nb_vec);
 void free_vectors(vec_t * vecs, int nb_vec);
 void normalize_vector(vec_t * vecs, int nb_vec, int dimension);
-void shuffle_vectors(int ** vec, int nb_vec);
+void init_random_vector(int ** vec, int nb_vec);
+void shuffle_vector(int * vec, int nb_vec);
 void add_bmu(net_t * net, int row, int column);
 void delete_all_bmu(net_t * net);
 int count_bmu(net_t * net);

@@ -12,7 +12,8 @@ int main(){
     normalize_vector(vecs, nb_vec, 4);
     //print_vectors(vecs, nb_vec);
     //printf("%lf\n", avarage_vector(vecs, nb_vec, 4));
-    shuffle_vectors(&vec, nb_vec);
+    init_random_vector(&vec, nb_vec);
+    shuffle_vector(vec, nb_vec);
 
     net_t network;
     network_config(&network, nb_vec, 4, avarage_vector(vecs, nb_vec, 4));
