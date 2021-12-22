@@ -16,7 +16,7 @@ int main(){
     shuffle_vector(vec, nb_vec);
 
     net_t network;
-    network_config(&network, nb_vec, 4, avarage_vector(vecs, nb_vec, 4));
+    network_config(&network, vecs, nb_vec, nb_dimension);
     //printf("%d\n", network.nb_iter);
     //printf("%lf\n", network.map[0].w[0]);
 

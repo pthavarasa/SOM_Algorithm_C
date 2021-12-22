@@ -23,6 +23,7 @@ struct bmu{
 };
 
 typedef struct net{
+    int nb_vecs;
     int nb_node;
     int nb_row;
     int nb_column;
@@ -45,10 +46,10 @@ void add_bmu(net_t * net, int row, int column);
 void delete_all_bmu(net_t * net);
 int count_bmu(net_t * net);
 bmu_t get_bmu(net_t * net);
-double avarage_vector(vec_t * vecs, int nb_vecs, int dimension);
-void init_network(net_t * config, double vec_avg);
+vec_t avarage_vector(vec_t * vecs, int nb_vecs, int dimension);
+void init_network(net_t * config, vec_t * vecs);
 void print_network(net_t config);
-void network_config(net_t * config, int nb_vec, int vec_size, double vec_avg);
+void network_config(net_t * config, vec_t * vecs, int nb_vec, int vec_size);
 void free_network(net_t net);
 double euclidean_distance(double * vec, double * weight, int size);
 void find_best_matching_unit(vec_t vec, net_t * net);

@@ -184,25 +184,42 @@ bmu_t get_bmu(net_t * net){
     return bmu;
 }
 
-double avarage_vector(vec_t * vecs, int nb_vecs, int dimension){
+vec_t avarage_vector(vec_t * vecs, int nb_vecs, int dimension){
     int i,j;
-    double sum = 0;
+    vec_t avg_vec;
+    avg_vec.v = (double *)malloc((size_t)dimension * (int)sizeof(double));
+    if(avg_vec.v == NULL) allocation_failure_handle();
+    for(j = 0; j < dimension; j++)
+        avg_vec.v[j] = 0;
     for(i = 0; i < nb_vecs; i++)
         for(j = 0; j < dimension; j++)
-            sum += vecs[i].v[j];
-    return sum / (nb_vecs * dimension);
+            avg_vec.v[j] += vecs[i].v[j];
+    for(j = 0; j < dimension; j++)
+        avg_vec.v[j] /= nb_vecs;
+    return avg_vec;
 }
 
-void init_network(net_t * config, double vec_avg){
+void init_network(net_t * config, vec_t * vecs){
     config->map = (node_t *)malloc((size_t)config->nb_row * (size_t)config->nb_column * (int)sizeof(node_t));
     if(config->map == NULL) allocation_failure_handle();
     int i, j;
-    double min = vec_avg - 0.002, max = vec_avg + 0.005;
+    vec_t avg_vec = avarage_vector(vecs, config->nb_vecs, config->vec_size);
+    vec_t min_vec, max_vec;
+    min_vec.v = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
+    if(min_vec.v == NULL) allocation_failure_handle();
+    for(j = 0; j < config->vec_size; j++)
+        min_vec.v[j] = avg_vec.v[j] - 0.002;
+
+    max_vec.v = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
+    if(max_vec.v == NULL) allocation_failure_handle();
+    for(j = 0; j < config->vec_size; j++)
+        max_vec.v[j] = avg_vec.v[j] + 0.005;
+
     for(i = 0; i < config->nb_row * config->nb_column; i++){
         config->map[i].w = (double *)malloc((size_t)config->vec_size * (int)sizeof(double));
         if(config->map[i].w == NULL) allocation_failure_handle();
         for(j = 0; j < config->vec_size; j++)
-            config->map[i].w[j] = min + fmod((double)rand(), (max - min));
+            config->map[i].w[j] = min_vec.v[j] + fmod((double)rand(), (max_vec.v[j] - min_vec.v[j]));
     }
 }
 
@@ -217,8 +234,9 @@ void print_network(net_t config){
     }
 }
 
-void network_config(net_t * config, int nb_vec, int vec_size, double vec_avg){
+void network_config(net_t * config, vec_t * vecs, int nb_vec, int vec_size){
     // 5 * sqrt(nb_vectors)
+    config->nb_vecs = nb_vec;
     config->nb_node = 5 * (int)sqrt(nb_vec);
     config->nb_row = 6;
     config->nb_column = 10;
@@ -229,7 +247,7 @@ void network_config(net_t * config, int nb_vec, int vec_size, double vec_avg){
     config->nb_nhd = 3;
     config->alpha = 0.7;
     config->vec_size = 4;
-    init_network(config, vec_avg);
+    init_network(config, vecs);
     config->bmu = NULL;
 }
 
