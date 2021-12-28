@@ -6,7 +6,7 @@ int main(){
     int nb_vec, nb_dimension;
     srand((unsigned int)time(NULL));
     load_data(&vecs, "iris.data", &nb_vec, &nb_dimension, ",");
-    normalize_vector(vecs, nb_vec, 4);
+    normalize_vector(vecs, nb_vec, nb_dimension);
     init_random_vector(&vec, nb_vec);
 
     net_t network;
@@ -15,29 +15,14 @@ int main(){
     network.nb_row = 6;
     network.nb_column = 10;
     network_config(&network, vecs);
+    save_network(&network, "net_before");
 
     training_network(vecs, vec, &network, nb_vec);
 
-    int v[60];
-    int i;
-    bmu_t bmu;
-    for(i = 0; i < 60; i++){
-        v[i] = 0;
-    }
-    for(i = 0; i < nb_vec; i++){
-        find_best_matching_unit(vecs[i], &network);
-        bmu = get_bmu(&network);
-        if(!strcmp(vecs[i].label, "Iris-setosa"))
-            v[bmu.row * 10 + bmu.column] = 1;
-        else if(!strcmp(vecs[i].label, "Iris-versicolor"))
-            v[bmu.row * 10 + bmu.column] = 2;
-        else if(!strcmp(vecs[i].label, "Iris-virginica"))
-            v[bmu.row * 10 + bmu.column] = 3;
-    }
-    for(i = 0; i < 60; i++){
-        if(i%10 == 0)printf("\n");
-        printf("%d", v[i]);
-    }
+    print_result(vecs, &network);
+
+    save_network(&network, "net_after");
+
 
     delete_all_bmu(&network);
     free_vectors(vecs, nb_vec);

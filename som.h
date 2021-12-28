@@ -72,4 +72,5 @@ void alter_weight_by_distance(vec_t vec, net_t * net, bmu_t bmu, int iter);
 void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_dist);
 int is_neighborhood(bmu_t bmu_pos, int weight_row, int weight_column, int nhd_dist);
 void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs);
+void print_result(vec_t * vecs, net_t * network);
 void save_network(net_t * net, char * file_name);

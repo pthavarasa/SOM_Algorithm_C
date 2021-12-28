@@ -247,6 +247,10 @@ int calculate_nb_nhd(int nb_node){
 void network_config(net_t * config, vec_t * vecs){
     // nb_node_coefficient * sqrt(nb_vectors)
     config->nb_node = NODE_COEF * (int)sqrt(config->nb_vecs);
+    if(!(config->nb_node == config->nb_row * config->nb_column)){
+        printf("column * row = %d and node_coef * sqrt(nb_vecs) = %d\n (it must be equal)", config->nb_row * config->nb_column, config->nb_node);
+        exit(EXIT_FAILURE);
+    }
     // 500 * nb_vectors | 1st => ( nb_iter/4 ) | 2nd => ( nb_iter - (nb_iter/4) )
     config->nb_iter = ITER_COEF * config->nb_vecs;
     config->alpha = ALFHA_INIT;
@@ -334,6 +338,72 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
     }
 }
 
+void save_map(char * file_name, int * v, int row, int column, int vec_size){
+    FILE *fptr;
+
+    fptr = fopen(file_name,"w");
+
+    if(fptr == NULL) allocation_failure_handle();
+
+    int i;
+    fprintf(fptr,"%d\n%d\n%d\n", row, column, vec_size);
+    for(i = 0; i < row * column; i++){
+        fprintf(fptr,"%d,",v[i]);
+    }
+
+    fclose(fptr);
+}
+
+void print_result(vec_t * vecs, net_t * network){
+    int * v = (int*)malloc((size_t)network->nb_node * (int)sizeof(int));
+    int i,j;
+    bmu_t bmu;
+    for(i = 0; i < network->nb_node; i++){
+        v[i] = 0;
+    }
+
+    int nb_label_distinct = 0;
+    char ** labels;
+    int comp;
+    for(i = 0; i < network->nb_vecs; i++){
+        comp = 0;
+        for(j = 0; j < nb_label_distinct; j++){
+            if(!strcmp(vecs[i].label, labels[j])){
+                comp = 1;
+            }
+        }
+        if(!comp){
+            nb_label_distinct++;
+            labels = (char**)realloc(labels, nb_label_distinct * sizeof(char**));
+            labels[j] = vecs[i].label;
+        }
+    }
+
+    for(i = 0; i < network->nb_vecs; i++){
+        find_best_matching_unit(vecs[i], network);
+        bmu = get_bmu(network);
+        for(j = 0; j < nb_label_distinct; j++){
+            if(!strcmp(vecs[i].label, labels[j])){
+                v[bmu.row * network->nb_column + bmu.column] = j+1;
+                break;
+            }
+        }
+    }
+    for(i = 0; i < network->nb_node; i++){
+        if(i%network->nb_column == 0)printf("\n");
+        printf("%d", v[i]);
+    }
+    printf("\n\n");
+
+    save_map("map", v, network->nb_row, network->nb_column, network->vec_size);
+
+    for(j = 0; j < nb_label_distinct; j++)
+        printf("%d = %s\n", j+1, labels[j]);
+    
+    free(v);
+    free(labels);
+}
+
 void save_network(net_t * net, char * file_name){
     FILE *fptr;
 
@@ -342,6 +412,7 @@ void save_network(net_t * net, char * file_name){
     if(fptr == NULL) allocation_failure_handle();
 
     int i, j;
+    fprintf(fptr,"%d\n%d\n%d\n", net->nb_row, net->nb_column, net->vec_size);
     for(i = 0; i < net->nb_row * net->nb_column; i++){
         for(j = 0; j < net->vec_size; j++){
             fprintf(fptr,"%lf,",net->map[i].w[j]);
