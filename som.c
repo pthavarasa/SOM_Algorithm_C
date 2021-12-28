@@ -238,7 +238,7 @@ void print_network(net_t config){
 }
 
 int calculate_nb_nhd(int nb_node){
-    nb_node = nb_node * NHD_COEF;
+    nb_node = (int)(nb_node * NHD_COEF);
     int nhd = NHD, count = 0, sum = 0;
     while((sum += nhd * count) + 1 < nb_node)count++;
     return count;
@@ -374,7 +374,7 @@ void print_result(vec_t * vecs, net_t * network){
         }
         if(!comp){
             nb_label_distinct++;
-            labels = (char**)realloc(labels, nb_label_distinct * sizeof(char**));
+            labels = (char**)realloc(labels, (size_t)nb_label_distinct * sizeof(char**));
             labels[j] = vecs[i].label;
         }
     }
