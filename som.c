@@ -224,6 +224,10 @@ void init_network(net_t * config, vec_t * vecs){
         for(j = 0; j < config->vec_size; j++)
             config->map[i].w[j] = min_vec.v[j] + fmod((double)rand(), (max_vec.v[j] - min_vec.v[j]));
     }
+
+    for(i = 0; i < config->nb_row * config->nb_column; i++){
+        config->map[i].label = NULL;
+    }
 }
 
 void print_network(net_t config){
@@ -288,7 +292,7 @@ void find_best_matching_unit(vec_t vec, net_t * net){
                 min_dist = dist;
                 delete_all_bmu(net);
                 add_bmu(net, i, j);
-            }else if(dist < min_dist){
+            }else if(dist == min_dist){
                 add_bmu(net, i, j);
             }
         }
@@ -338,30 +342,20 @@ void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
     }
 }
 
-void save_map(char * file_name, int * v, int row, int column, int vec_size){
-    FILE *fptr;
 
-    fptr = fopen(file_name,"w");
-
-    if(fptr == NULL) allocation_failure_handle();
-
-    int i;
-    fprintf(fptr,"%d\n%d\n%d\n", row, column, vec_size);
-    for(i = 0; i < row * column; i++){
-        fprintf(fptr,"%d,",v[i]);
-    }
-
-    fclose(fptr);
-}
-
-void print_result(vec_t * vecs, net_t * network){
-    int * v = (int*)malloc((size_t)network->nb_node * (int)sizeof(int));
+void print_and_save_result(vec_t * vecs, net_t * network){
     int i,j;
     bmu_t bmu;
-    for(i = 0; i < network->nb_node; i++){
-        v[i] = 0;
-    }
 
+    FILE *fptr;
+    fptr = fopen("map","w");
+    if(fptr == NULL){
+        printf(FILE_NOT_FOUND);
+        exit(EXIT_FAILURE);
+    }
+    fprintf(fptr,"%d\n%d\n%d\n", network->nb_row, network->nb_column, network->vec_size);
+
+    // get all unique label from dataset
     int nb_label_distinct = 0;
     char ** labels;
     int comp;
@@ -374,33 +368,46 @@ void print_result(vec_t * vecs, net_t * network){
         }
         if(!comp){
             nb_label_distinct++;
-            labels = (char**)realloc(labels, (size_t)nb_label_distinct * sizeof(char**));
+
+            if(nb_label_distinct == 1)
+                labels = (char**)malloc((size_t)nb_label_distinct * sizeof(char**));
+            else
+                labels = (char**)realloc(labels, (size_t)nb_label_distinct * sizeof(char**));
+
             labels[j] = vecs[i].label;
         }
     }
 
+    int * vec;
+    init_random_vector(&vec, network->nb_vecs);
+    shuffle_vector(vec, network->nb_vecs);
     for(i = 0; i < network->nb_vecs; i++){
-        find_best_matching_unit(vecs[i], network);
+        find_best_matching_unit(vecs[vec[i]], network);
         bmu = get_bmu(network);
-        for(j = 0; j < nb_label_distinct; j++){
-            if(!strcmp(vecs[i].label, labels[j])){
-                v[bmu.row * network->nb_column + bmu.column] = j+1;
-                break;
-            }
-        }
+        network->map[bmu.row * network->nb_column + bmu.column].label = vecs[vec[i]].label;
     }
+    free(vec);
+    
     for(i = 0; i < network->nb_node; i++){
         if(i%network->nb_column == 0)printf("\n");
-        printf("%d", v[i]);
+        for(j = 0; j < nb_label_distinct; j++)
+            if(network->map[i].label != NULL){
+                if(!strcmp(network->map[i].label, labels[j])){
+                    printf("%d", j+1);
+                    fprintf(fptr,"%d,", j+1);
+                }
+            }else{
+                printf("%d", 0);
+                fprintf(fptr,"%d,", 0);
+                break;
+            }
     }
     printf("\n\n");
-
-    save_map("map", v, network->nb_row, network->nb_column, network->vec_size);
 
     for(j = 0; j < nb_label_distinct; j++)
         printf("%d = %s\n", j+1, labels[j]);
     
-    free(v);
+    fclose(fptr);
     free(labels);
 }
 

@@ -19,7 +19,7 @@ int main(){
 
     training_network(vecs, vec, &network, nb_vec);
 
-    print_result(vecs, &network);
+    print_and_save_result(vecs, &network);
 
     save_network(&network, "net_after");
 
@@ -27,5 +27,6 @@ int main(){
     delete_all_bmu(&network);
     free_vectors(vecs, nb_vec);
     free_network(network);
+    free(vec);
     return 1;
 }
