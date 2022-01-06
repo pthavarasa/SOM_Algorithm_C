@@ -241,7 +241,7 @@ void print_network(net_t config){
     }
 }
 
-int calculate_nb_nhd(int nb_node){
+int calculate_nhd_radius(int nb_node){
     nb_node = (int)(nb_node * NHD_COEF);
     int nhd = NHD, count = 0, sum = 0;
     while((sum += nhd * count) + 1 < nb_node)count++;
@@ -260,7 +260,7 @@ void network_config(net_t * config, vec_t * vecs){
     config->alpha = ALFHA_INIT;
     // 50% of nb_node => nb_node * 0.5 => 60 * 0.5 = 30
     // 8*n+1 => (8*0) + (8*1) + (8*2) + (8*3) + 1 = 49 (49>30) => n=3
-    config->nb_nhd = calculate_nb_nhd(config->nb_node);
+    config->nhd_radius = calculate_nhd_radius(config->nb_node);
     init_network(config, vecs);
     config->bmu = NULL;
 }
@@ -299,19 +299,19 @@ void find_best_matching_unit(vec_t vec, net_t * net){
     }
 }
 
-void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_dist){
+void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_radius){
     int x,y, row, column;
     double alpha;
-    for(x = -nhd_dist; x <= nhd_dist; x++){
-        for(y = -nhd_dist; y <= nhd_dist; y++){
+    if(iter > net->nb_iter/FIRST_STAGE_DIV)
+        alpha = net->alpha/SECOND_STAGE_DIV;
+    else
+        alpha = net->alpha;
+    alpha = alpha * (1 - iter / net->nb_iter);
+    for(x = -nhd_radius; x <= nhd_radius; x++){
+        for(y = -nhd_radius; y <= nhd_radius; y++){
             row = bmu.row + x;
             column = bmu.column + y;
             if(row >= 0 && row < net->nb_row && column >= 0 && column < net->nb_column){
-                if(iter > net->nb_iter/FIRST_STAGE_DIV)
-                    alpha = net->alpha/SECOND_STAGE_DIV;
-                else
-                    alpha = net->alpha;
-                alpha = alpha * (1 - iter / net->nb_iter);
                 double * weight;
                 weight = net->map[row * net->nb_column + column].w;
                 int i;
@@ -324,21 +324,23 @@ void alter_weight_nhd(vec_t vec, net_t * net, bmu_t bmu, int iter, int nhd_dist)
 }
 
 void training_network(vec_t * vecs, int * shuf_vec, net_t * net, int nb_vecs){
-    int iter, nhd_dist;
+    int iter, nhd_radius, first_stage_iter, first_stage_iter_div;
     vec_t vec;
     bmu_t bmu;
+    first_stage_iter = net->nb_iter/FIRST_STAGE_DIV;
+    first_stage_iter_div = first_stage_iter/net->nhd_radius;
     for(iter = 0; iter < net->nb_iter; iter++){
         if(iter % nb_vecs == 0) shuffle_vector(shuf_vec, nb_vecs);
         vec = vecs[shuf_vec[iter%nb_vecs]];
         find_best_matching_unit(vec, net);
         bmu = get_bmu(net);
 
-        if(iter <= net->nb_iter/FIRST_STAGE_DIV){
-            nhd_dist = (int)(net->nb_nhd - iter/((net->nb_iter/FIRST_STAGE_DIV)/net->nb_nhd));
-            if(!nhd_dist) nhd_dist = 1;
+        if(iter <= first_stage_iter){
+            nhd_radius = (int)(net->nhd_radius - iter/first_stage_iter_div);
+            if(!nhd_radius) nhd_radius = 1;
         }else
-            nhd_dist = 1;
-        alter_weight_nhd(vec, net, bmu, iter, nhd_dist);
+            nhd_radius = 1;
+        alter_weight_nhd(vec, net, bmu, iter, nhd_radius);
     }
 }
 

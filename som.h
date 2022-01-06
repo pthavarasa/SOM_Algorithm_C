@@ -43,7 +43,7 @@ typedef struct net{
     int nb_column;
     int nb_iter;
     double alpha;
-    int nb_nhd; //neighborhood
+    int nhd_radius; //neighborhood
     int vec_size;
     node_t * map;
     bmu_t * bmu; // best matching unit
